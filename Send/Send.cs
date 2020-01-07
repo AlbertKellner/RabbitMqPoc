@@ -12,14 +12,8 @@ class Send
             using (var connection = factory.CreateConnection())
             using (var channel = connection.CreateModel())
             {
-                //channel.QueueDelete("task_queue", false, false);
+                channel.ExchangeDeclare(exchange: "logs", type: ExchangeType.Fanout);
 
-                channel.QueueDeclare(queue: "task_queue",
-                                     durable: true,
-                                     exclusive: false,
-                                     autoDelete: false,
-                                     arguments: null);
-                
                 var message = new StringBuilder();
                 var seconds = new Random().Next(1, 20);
 
@@ -30,12 +24,9 @@ class Send
 
                 var body = Encoding.UTF8.GetBytes(message.ToString());
 
-                var properties = channel.CreateBasicProperties();
-                properties.Persistent = true;
-
-                channel.BasicPublish(exchange: "",
-                                     routingKey: "task_queue",
-                                     basicProperties: properties,
+                channel.BasicPublish(exchange: "logs",
+                                     routingKey: "",
+                                     basicProperties: null,
                                      body: body);
 
                 Console.WriteLine($" Sent {i + 1}", message);

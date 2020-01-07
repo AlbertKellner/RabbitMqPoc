@@ -13,13 +13,14 @@ class Receive
         using (var connection = factory.CreateConnection())
         using (var channel = connection.CreateModel())
         {
-            channel.QueueDeclare(queue: "task_queue",
-                                 durable: true,
-                                 exclusive: false,
-                                 autoDelete: false,
-                                 arguments: null);
+            channel.ExchangeDeclare(exchange: "logs", type: ExchangeType.Fanout);
 
-            channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+            var queueName = channel.QueueDeclare().QueueName;
+            channel.QueueBind(queue: queueName,
+                              exchange: "logs",
+                              routingKey: "");
+
+            Console.WriteLine(" [*] Waiting for logs.");
 
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received += (model, ea) =>
@@ -32,10 +33,11 @@ class Receive
                 Thread.Sleep(dots * 200);
 
                 Console.WriteLine(" [x] Done");
-
-                channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
             };
-            channel.BasicConsume(queue: "task_queue", autoAck: false, consumer: consumer);
+
+            channel.BasicConsume(queue: queueName,
+                                 autoAck: true,
+                                 consumer: consumer);
 
 
             Console.WriteLine(" Press [enter] to exit.");
